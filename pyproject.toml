@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gpu-monitor"
+version = "0.1.0"
+description = "Monitor GPU usage across SSH servers with a beautiful TUI"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "rich>=13.0.0",
+    "asyncssh>=2.14.0",
+    "click>=8.0.0",
+]
+
+[project.scripts]
+gpu-monitor = "gpu_monitor.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["gpu_monitor"]
