@@ -8,7 +8,7 @@ A beautiful CLI tool to monitor GPU usage across multiple SSH servers in real-ti
 
 - Real-time GPU monitoring across multiple servers via SSH
 - Beautiful TUI with colored progress bars
-- Two display modes: **essentials** and **full**
+- Three display modes: **essentials**, **full**, and **compact**
 - Configurable refresh rate
 - Concurrent SSH connections for fast updates
 - Automatic SSH config support (`~/.ssh/config`)
@@ -41,6 +41,9 @@ gpu-monitor --servers a,b,c
 
 # Combine options
 gpu-monitor --full --refresh 3 --servers a,b,c,d
+
+# Compact mode for small screens
+gpu-monitor --compact
 ```
 
 ## Options
@@ -50,6 +53,7 @@ gpu-monitor --full --refresh 3 --servers a,b,c,d
 | `--refresh` | `-r` | Refresh interval in seconds | 2.0 |
 | `--full` | `-f` | Show full details (temp, power, processes) | Off |
 | `--essentials` | `-e` | Show essentials only (utilization, memory) | On |
+| `--compact` | `-c` | Compact multi-column mode for small screens | Off |
 | `--servers` | `-s` | Comma-separated list of servers | a,b,c,d,e,f,g,h,i |
 | `--timeout` | `-t` | SSH connection timeout in seconds | 10.0 |
 | `--version` | | Show version | |
@@ -76,6 +80,22 @@ Shows GPU utilization and memory usage with colored progress bars.
 
 ### Full Mode (`--full`)
 Adds temperature, power consumption, and running processes.
+
+### Compact Mode (`--compact`)
+Multi-column layout optimized for small screens (e.g., 13" laptops with ~30 lines).
+Displays servers in a grid layout to minimize vertical space.
+
+```
+GPU Monitor │ 9 srv │ 2.0s │ 20:52:15
+[a]                         [b]                        [c]
+0:█░░░░ 20% █░░░░ 7.8G      0:█░░░░ 20% █░░░░ 7.8G     0:█░░░░ 20% █░░░░ 7.8G
+1:█░░░░ 30% █░░░░ 8.8G      1:█░░░░ 30% █░░░░ 8.8G     1:█░░░░ 30% █░░░░ 8.8G
+2:██░░░ 40% ██░░░ 9.8G      2:██░░░ 40% ██░░░ 9.8G     2:██░░░ 40% ██░░░ 9.8G
+3:██░░░ 50% ██░░░10.7G      3:██░░░ 50% ██░░░10.7G     3:██░░░ 50% ██░░░10.7G
+[d]                         [e] OFF                    [f]
+0:█░░░░ 20% █░░░░ 7.8G                                 0:█░░░░ 20% █░░░░ 7.8G
+...
+```
 
 ## Prerequisites
 
