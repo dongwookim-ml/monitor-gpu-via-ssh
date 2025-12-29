@@ -41,6 +41,7 @@ async def monitor_loop(
     refresh: float,
     full_mode: bool,
     timeout: float,
+    compact_mode: bool = False,
 ) -> None:
     """Main monitoring loop with live display."""
     stop_event = asyncio.Event()
@@ -64,7 +65,7 @@ async def monitor_loop(
                 last_update = datetime.now()
 
                 # Update display
-                display = create_display(server_data, refresh, full_mode, last_update)
+                display = create_display(server_data, refresh, full_mode, last_update, compact_mode)
                 live.update(display)
 
                 # Wait for refresh interval or stop signal
@@ -116,6 +117,13 @@ async def monitor_loop(
     type=float,
     help="SSH connection timeout in seconds (default: 10.0)",
 )
+@click.option(
+    "-c",
+    "--compact",
+    is_flag=True,
+    default=False,
+    help="Compact mode for small screens (minimal columns, no GPU names)",
+)
 @click.version_option(package_name="gpu-monitor")
 def main(
     refresh: float,
@@ -123,6 +131,7 @@ def main(
     essentials: bool,
     servers: str | None,
     timeout: float,
+    compact: bool,
 ) -> None:
     """
     Monitor GPU usage across SSH servers.
@@ -143,18 +152,26 @@ def main(
     else:
         server_list = DEFAULT_SERVERS
 
-    # Determine mode (full takes precedence)
+    # Determine mode (full takes precedence, compact overrides both)
     full_mode = full and not essentials
+
+    # Determine display mode string
+    if compact:
+        mode_str = "compact"
+    elif full_mode:
+        mode_str = "full"
+    else:
+        mode_str = "essentials"
 
     # Print startup message
     console.print(f"[bold magenta]GPU Monitor[/bold magenta] starting...")
     console.print(f"[dim]Servers: {', '.join(server_list)}[/dim]")
-    console.print(f"[dim]Refresh: {refresh}s | Mode: {'full' if full_mode else 'essentials'}[/dim]")
+    console.print(f"[dim]Refresh: {refresh}s | Mode: {mode_str}[/dim]")
     console.print(f"[dim]Press Ctrl+C to exit[/dim]\n")
 
     # Run the monitor
     try:
-        asyncio.run(monitor_loop(server_list, refresh, full_mode, timeout))
+        asyncio.run(monitor_loop(server_list, refresh, full_mode, timeout, compact))
     except KeyboardInterrupt:
         console.print("\n[dim]GPU Monitor stopped.[/dim]")
         sys.exit(0)

@@ -58,6 +58,69 @@ def create_header_panel(
     )
 
 
+def create_compact_table(server_data: list[ServerGPUData]) -> Table:
+    """Create a compact table for small screens."""
+    table = Table(
+        show_header=True,
+        header_style="bold cyan",
+        border_style="blue",
+        expand=False,
+        padding=(0, 0),
+        box=None,
+    )
+
+    table.add_column("Srv", style="bold white", width=3)
+    table.add_column("#", justify="center", width=1)
+    table.add_column("Util", width=12)
+    table.add_column("Mem", width=12)
+
+    for data in sorted(server_data, key=lambda x: x.server):
+        if not data.online:
+            table.add_row(
+                data.server[:3],
+                "-",
+                Text("OFF", style="red bold"),
+                "",
+            )
+            continue
+
+        for i, gpu in enumerate(data.gpus):
+            server_name = data.server[:3] if i == 0 else ""
+
+            # Utilization bar (compact)
+            util_bar = create_bar(gpu.utilization, width=6)
+            util_text = Text()
+            util_text.append_text(util_bar)
+            util_text.append(f"{gpu.utilization:3.0f}%", style=get_color_for_percent(gpu.utilization))
+
+            # Memory bar (compact)
+            mem_bar = create_bar(gpu.memory_percent, width=6)
+            mem_text = Text()
+            mem_text.append_text(mem_bar)
+            mem_text.append(f"{gpu.memory_used/1024:4.1f}G", style=get_color_for_percent(gpu.memory_percent))
+
+            table.add_row(
+                server_name,
+                str(gpu.index),
+                util_text,
+                mem_text,
+            )
+
+    return table
+
+
+def create_compact_header(
+    server_count: int, refresh_rate: float, last_update: datetime | None = None
+) -> Text:
+    """Create a compact header for small screens."""
+    header = Text()
+    header.append("GPU Monitor", style="bold magenta")
+    header.append(f" │ {server_count} srv │ {refresh_rate}s", style="dim")
+    if last_update:
+        header.append(f" │ {last_update.strftime('%H:%M:%S')}", style="dim cyan")
+    return header
+
+
 def create_essentials_table(server_data: list[ServerGPUData]) -> Table:
     """Create the essentials mode table."""
     table = Table(
@@ -237,8 +300,14 @@ def create_display(
     refresh_rate: float,
     full_mode: bool,
     last_update: datetime | None = None,
+    compact_mode: bool = False,
 ) -> Group:
     """Create the complete display layout."""
+    if compact_mode:
+        header = create_compact_header(len(server_data), refresh_rate, last_update)
+        table = create_compact_table(server_data)
+        return Group(header, "", table)
+
     mode = "full" if full_mode else "essentials"
     header = create_header_panel(len(server_data), refresh_rate, mode, last_update)
 
