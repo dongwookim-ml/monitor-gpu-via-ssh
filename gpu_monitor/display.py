@@ -2,7 +2,8 @@
 
 from datetime import datetime
 
-from rich.console import Console, Group
+from rich.columns import Columns
+from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, TextColumn
@@ -58,55 +59,47 @@ def create_header_panel(
     )
 
 
-def create_compact_table(server_data: list[ServerGPUData]) -> Table:
-    """Create a compact table for small screens."""
-    table = Table(
-        show_header=True,
-        header_style="bold cyan",
-        border_style="blue",
-        expand=False,
-        padding=(0, 0),
-        box=None,
-    )
+def create_server_block(data: ServerGPUData) -> RenderableType:
+    """Create a compact block for a single server."""
+    lines = []
 
-    table.add_column("Srv", style="bold white", width=3)
-    table.add_column("#", justify="center", width=1)
-    table.add_column("Util", width=12)
-    table.add_column("Mem", width=12)
+    # Server header
+    header = Text()
+    header.append(f"[{data.server}]", style="bold cyan")
 
-    for data in sorted(server_data, key=lambda x: x.server):
-        if not data.online:
-            table.add_row(
-                data.server[:3],
-                "-",
-                Text("OFF", style="red bold"),
-                "",
-            )
-            continue
+    if not data.online:
+        header.append(" ", style="dim")
+        header.append("OFF", style="red bold")
+        lines.append(header)
+    else:
+        lines.append(header)
+        for gpu in data.gpus:
+            line = Text()
+            line.append(f"{gpu.index}:", style="dim")
 
-        for i, gpu in enumerate(data.gpus):
-            server_name = data.server[:3] if i == 0 else ""
+            # Utilization bar
+            util_bar = create_bar(gpu.utilization, width=5)
+            line.append_text(util_bar)
+            line.append(f"{gpu.utilization:3.0f}%", style=get_color_for_percent(gpu.utilization))
 
-            # Utilization bar (compact)
-            util_bar = create_bar(gpu.utilization, width=6)
-            util_text = Text()
-            util_text.append_text(util_bar)
-            util_text.append(f"{gpu.utilization:3.0f}%", style=get_color_for_percent(gpu.utilization))
+            line.append(" ", style="dim")
 
-            # Memory bar (compact)
-            mem_bar = create_bar(gpu.memory_percent, width=6)
-            mem_text = Text()
-            mem_text.append_text(mem_bar)
-            mem_text.append(f"{gpu.memory_used/1024:4.1f}G", style=get_color_for_percent(gpu.memory_percent))
+            # Memory bar
+            mem_bar = create_bar(gpu.memory_percent, width=5)
+            line.append_text(mem_bar)
+            line.append(f"{gpu.memory_used/1024:4.1f}G", style=get_color_for_percent(gpu.memory_percent))
 
-            table.add_row(
-                server_name,
-                str(gpu.index),
-                util_text,
-                mem_text,
-            )
+            lines.append(line)
 
-    return table
+    return Group(*lines)
+
+
+def create_compact_multicolumn(server_data: list[ServerGPUData], num_columns: int = 3) -> Columns:
+    """Create a multi-column compact display for small screens."""
+    sorted_data = sorted(server_data, key=lambda x: x.server)
+    blocks = [create_server_block(data) for data in sorted_data]
+
+    return Columns(blocks, equal=True, expand=True)
 
 
 def create_compact_header(
@@ -305,8 +298,8 @@ def create_display(
     """Create the complete display layout."""
     if compact_mode:
         header = create_compact_header(len(server_data), refresh_rate, last_update)
-        table = create_compact_table(server_data)
-        return Group(header, "", table)
+        columns = create_compact_multicolumn(server_data)
+        return Group(header, "", columns)
 
     mode = "full" if full_mode else "essentials"
     header = create_header_panel(len(server_data), refresh_rate, mode, last_update)
